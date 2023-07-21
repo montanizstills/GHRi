@@ -20,9 +20,27 @@ RUN curl -O -L https://github.com/actions/runner/releases/download/v2.303.0/acti
 RUN sed -i '/echo "Must not run with sudo"/{n;s/^/# /;}' config.sh
 # && sed -i '/echo "Must not run interactively with sudo"/{n;s/^/# /;}' run.sh
 
+#
+# Option 1
+# This method makes the token ephemeral and obfuscated in `docker history` Must have secrets.txt file.
+# DOCKER_BUILDKIT=1 docker build --secret=id=<id>,src=<path/to/file.txt> - t <img_tag> -f <dockerfile> .
+#RUN --mount=type=secret,id=action_runner_token \
+#    echo "$(cat /run/secrets/action_runner_token)" | ./config.sh --url https://github.com/vertexinc/vc-dr-test --token -n
+#
+# Option 2
+# This method relies on the deployment tool. Must have `ARG ACTION_RUNNER_TOKEN` in dockerfile.
+# docker build --build-arg ACTION_RUNNER_TOKEN=**** -t <img_tag> -f <dockerfile> .
+#RUN ./config.sh --url https://github.com/vertexinc/vc-dr-test --token $ACTION_RUNNER_TOKEN
+#
+# Option 3
+# This method shows the token as plain text (not recommended). Must replace <token> with a shortlived token from (https://github.com/vertexinc/vc-dr-test/settings/actions/runners/new).
+# docker build --squash -t <image_name> -f <dockerfile> .
+RUN ./config.sh --url https://github.com/vertexinc/vc-dr-test \
+    --token <token> --name 'vcd-runner' --work 'iterations' --replace
+
 # Configure the runner.
 RUN ./config.sh --url https://github.com/vertexinc/vc-dr-test \
-    --token <token> --name 'my-self-hosted-runner' --work 'iterations' --replace
+    --token <token> --name 'vcd-runner' --work 'iterations' --replace
 
 # Confiugure image as a service
 RUN ./svc.sh install
